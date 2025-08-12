@@ -17,6 +17,7 @@ Github Actions 是 Microsoft 推出的一项服务，它提供了性能配置非
     - [5.2 定时编译](#52-定时编译)
     - [5.3 自定义默认系统配置](#53-自定义默认系统配置)
     - [5.4 使用逻辑卷扩大 Github Actions 编译空间](#54-使用逻辑卷扩大-github-actions-编译空间)
+    - [5.5 制作 Armbian Docker 镜像](#55-制作-armbian-docker-镜像)
   - [6. 保存系统](#6-保存系统)
   - [7. 下载系统](#7-下载系统)
   - [8. 安装 Armbian 到 EMMC](#8-安装-armbian-到-emmc)
@@ -30,10 +31,12 @@ Github Actions 是 Microsoft 推出的一项服务，它提供了性能配置非
       - [8.2.3 电犀牛 R68S 的安装方法](#823-电犀牛-r68s-的安装方法)
       - [8.2.4 贝壳云的安装方法](#824-贝壳云的安装方法)
       - [8.2.5 我家云的安装方法](#825-我家云的安装方法)
+      - [8.2.6 泰山派的安装方法](#826-泰山派的安装方法)
     - [8.3 Allwinner 系列安装方法](#83-allwinner-系列安装方法)
   - [9. 编译 Armbian 内核](#9-编译-armbian-内核)
     - [9.1 如何添加自定义内核补丁](#91-如何添加自定义内核补丁)
     - [9.2 如何制作内核补丁](#92-如何制作内核补丁)
+    - [9.3 如何自定义编译驱动模块](#93-如何自定义编译驱动模块)
   - [10. 更新 Armbian 内核](#10-更新-armbian-内核)
   - [11. 安装常用软件](#11-安装常用软件)
   - [12. 常见问题](#12-常见问题)
@@ -112,7 +115,7 @@ Github Actions 是 Microsoft 推出的一项服务，它提供了性能配置非
 
 ## 4. 个性化 Armbian 系统定制文件说明
 
-系统编译的流程在 [.github/workflows/build-armbian.yml](../../.github/workflows/build-armbian.yml) 文件里控制，在 workflows 目录下还有其他 .yml 文件，实现其他不同的功能。编译系统时采用了 Armbian 官方的当前代码进行实时编译，相关参数可以查阅官方文档。
+系统编译的流程在 [.github/workflows/build-armbian-server-image.yml](../.github/workflows/build-armbian-server-image.yml) 文件里控制，在 workflows 目录下还有其他 .yml 文件，实现其他不同的功能。编译系统时采用了 Armbian 官方的当前代码进行实时编译，相关参数可以查阅官方文档。
 
 ```yaml
 - name: Compile Armbian [ ${{ inputs.set_release }} ]
@@ -143,7 +146,7 @@ Github Actions 是 Microsoft 推出的一项服务，它提供了性能配置非
 
 ### 5.2 定时编译
 
-在 [.github/workflows/build-armbian.yml](../../.github/workflows/build-armbian.yml) 文件里，使用 Cron 设置定时编译，5 个不同位置分别代表的意思为 分钟 (0 - 59) / 小时 (0 - 23) / 日期 (1 - 31) / 月份 (1 - 12) / 星期几 (0 - 6)(星期日 - 星期六)。通过修改不同位置的数值来设定时间。系统默认使用 UTC 标准时间，请根据你所在国家时区的不同进行换算。
+在 [.github/workflows/build-armbian-server-image.yml](../../.github/workflows/build-armbian-server-image.yml) 文件里，使用 Cron 设置定时编译，5 个不同位置分别代表的意思为 分钟 (0 - 59) / 小时 (0 - 23) / 日期 (1 - 31) / 月份 (1 - 12) / 星期几 (0 - 6)(星期日 - 星期六)。通过修改不同位置的数值来设定时间。系统默认使用 UTC 标准时间，请根据你所在国家时区的不同进行换算。
 
 ```yaml
 schedule:
@@ -160,7 +163,7 @@ schedule:
 
 ### 5.4 使用逻辑卷扩大 Github Actions 编译空间
 
-Github Actions 编译空间默认是 84G，除去系统和必要软件包外，可用空间在 50G 左右，当编译全部固件时会遇到空间不足的问题，可以使用逻辑卷扩大编译空间至 110G 左右。参考 [.github/workflows/build-armbian.yml](../.github/workflows/build-armbian.yml) 文件里的方法，使用下面的命令创建逻辑卷。并在编译时使用逻辑卷的路径。
+Github Actions 编译空间默认是 84G，除去系统和必要软件包外，可用空间在 50G 左右，当编译全部固件时会遇到空间不足的问题，可以使用逻辑卷扩大编译空间至 110G 左右。参考 [.github/workflows/build-armbian-server-image.yml](../.github/workflows/build-armbian-server-image.yml) 文件里的方法，使用下面的命令创建逻辑卷。并在编译时使用逻辑卷的路径。
 
 ```yaml
 - name: Create simulated physical disk
@@ -182,9 +185,13 @@ Github Actions 编译空间默认是 84G，除去系统和必要软件包外，�
     df -Th
 ```
 
+### 5.5 制作 Armbian Docker 镜像
+
+Armbian 系统 [Docker](https://hub.docker.com/u/ophub) 镜像的制作方法可以参考 [armbian_docker](../compile-kernel/tools/script/docker) 制作脚本。
+
 ## 6. 保存系统
 
-系统保存的设置也在 [.github/workflows/build-armbian.yml](../../.github/workflows/build-armbian.yml) 文件里控制。我们将编译好的系统通过脚本自动上传到 github 官方提供的 Releases 里面。
+系统保存的设置也在 [.github/workflows/build-armbian-server-image.yml](../../.github/workflows/build-armbian-server-image.yml) 文件里控制。我们将编译好的系统通过脚本自动上传到 github 官方提供的 Releases 里面。
 
 ```yaml
 - name: Upload Armbian image to Release
@@ -344,6 +351,13 @@ dd if=armbian.img  of=/dev/nvme0n1  bs=1M status=progress
 <img src=https://github.com/ophub/amlogic-s9xxx-armbian/assets/68696949/13aab016-1b93-4ff1-b1ef-c202bd357068 width="600" />
 </div>
 
+#### 8.2.6 泰山派的安装方法
+- 下载 [RKDevTool](https://github.com/ophub/kernel/releases/download/tools/FastRhino_r68s_RKDevTool_Release_v2.86___DriverAssitant_v5.1.1.tar.gz) 工具及驱动，解压并安装 DriverAssitant 驱动程序，打开 RKDevTool 工具。(注意，请使用2.86版本工具而不是2.92，2.92版本刷入时会闪退)
+- 泰山派关机状态下按住 Recovery 键后插入type-c数据线，待 RKDevTool 提示`发现一个 LOADER 设备`后松开 Recovery 键。右键添加项。
+- 地址 `0x00000000`, 名字 `system`, 路径选择要刷的 `Armbian.img` 系统。
+- 点击执行，等待进度条完成即可
+
+
 ### 8.3 Allwinner 系列安装方法
 
 登录 Armbian 系统 (默认用户: root, 默认密码: 1234) → 输入命令：
@@ -394,6 +408,76 @@ armbian-install
 - 从 github.com 仓库的 commits 中获得：在相应的 `commit` 地址后添加 `.patch` 后缀即可生成对应的补丁。
 
 在添加自定义内核补丁前，需要先和上游的内核源码仓库 [unifreq/linux-k.x.y](https://github.com/unifreq) 进行比较，确认此补丁是否已经添加，避免造成冲突。通过测试的内核补丁，建议向 unifreq 大佬维护的系列内核仓库进行提交。每人一小步，世界一大步，大家的贡献会让我们在盒子里使用 Armbian 和 OpenWrt 系统时更加稳定和有趣。
+
+### 9.3 如何自定义编译驱动模块
+
+在 linux 主线内核里，有些驱动尚未支持，可以自定义编译驱动模块。请选择支持在主线内核里使用的驱动，安卓驱动一般不支持主线内核，无法编译。举例如下：
+
+```shell
+# 第一步，更新最新内核
+# 由于早期的 header 文件不全，所以需要更新到最新的内核。
+# 各内核版本要求不低于 5.4.280, 5.10.222, 5.15.163, 6.1.100, 6.6.41。
+armbian-sync
+armbian-update -k 6.1
+
+
+# 第二步，安装编译工具
+mkdir -p /usr/local/toolchain
+cd /usr/local/toolchain
+# 下载编译工具
+wget https://github.com/ophub/kernel/releases/download/dev/arm-gnu-toolchain-14.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz
+# 解压
+tar -Jxf arm-gnu-toolchain-14.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz
+# 安装其他编译依赖包（可选项，可根据错误提示手动安装缺少项）
+armbian-kernel -u
+
+
+# 第三步，下载驱动，编译
+# 下载驱动源码
+cd ~/
+git clone https://github.com/jwrdegoede/rtl8189ES_linux
+cd rtl8189ES_linux
+# 设置编译环境
+gun_file="arm-gnu-toolchain-14.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz"
+toolchain_path="/usr/local/toolchain"
+toolchain_name="gcc"
+export CROSS_COMPILE="${toolchain_path}/${gun_file//.tar.xz/}/bin/aarch64-none-linux-gnu-"
+export CC="${CROSS_COMPILE}gcc"
+export LD="${CROSS_COMPILE}ld.bfd"
+export ARCH="arm64"
+export KSRC=/usr/lib/modules/$(uname -r)/build
+# 根据源码的实际路径设置 M 变量
+export M="/root/rtl8189ES_linux"
+# 编译驱动
+make
+
+
+# 第四步，安装驱动
+sudo cp -f 8189es.ko /lib/modules/$(uname -r)/kernel/drivers/net/wireless/
+# 更新模块依赖关系
+sudo depmod -a
+# 加载驱动模块
+sudo modprobe 8189es
+# 检查驱动是否加载成功
+lsmod | grep 8189es
+# 可以看到成功加载驱动
+8189es               1843200  0
+cfg80211              917504  2 8189es,brcmfmac
+```
+
+图示如下：
+
+<div style="width:100%;margin-top:40px;margin:5px;">
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/1a89cbe6-df38-4862-8d11-9d977e0f4191">
+</div>
+
+<div style="width:100%;margin-top:40px;margin:5px;">
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/1a1d0bb9-44d4-4de5-9907-47e5f20747a7">
+</div>
+
+<div style="width:100%;margin-top:40px;margin:5px;">
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/d1bd2eff-4c57-4e91-a870-08b0f8b1fe16">
+</div>
 
 ## 10. 更新 Armbian 内核
 
@@ -836,21 +920,29 @@ ip -c -br address
 
 ##### 12.7.2.4 修改网络连接 MAC 地址
 
-在网络连接 `ether1` 上修改(克隆) `MAC 地址`并立即生效, 以解决局域网 MAC 地址冲突问题。
+在网络连接 `eth0` 上修改(克隆) `MAC 地址`并立即生效, 以解决局域网 MAC 地址冲突问题。
 
 *适用 有线连接 / 无线连接
 
 ```shell
-# Set ENV
-MYCON=ether1                  # 网络连接名称, 注意匹配网络接口类型
-MYTYPE=ethernet               # 网络接口类型 = 有线网卡 / 无线网卡 = ethernet / wifi
-MYMAC=12:34:56:78:9A:BC       # 新的 MAC 地址
+# 使用 nmcli connection show 命令查看网络连接名称
+nmcli connection show
+# 返回的结果中包含网口名字，例如'Wired connection 1'
+NAME                UUID                                  TYPE      DEVICE
+Wired connection 1  24d63dc7-c46f-3bf1-912f-1c33eb94338b  ethernet  eth0
+lo                  35ca24e5-bdc0-4658-8ac8-435ee22e07f3  loopback  lo
+Wired connection 2  59660b21-b460-30e0-8cb3-89b886556955  ethernet  --
 
-# Chg CON
-nmcli connection modify ${MYCON} \
-${MYTYPE}.cloned-mac-address ${MYMAC}
-nmcli connection up ${MYETH}
-ip -c -br address
+# 设置变量
+MYCON='Wired connection 1'    # 网络连接名称, 注意匹配网络接口类型
+MYTYPE='802-3-ethernet'       # 网络接口类型 = 有线网卡        / 无线网卡
+                              #            = 802-3-ethernet / 802-11-wireless
+MYMAC='12:34:56:78:9A:BC'     # 设置新的 MAC 地址
+
+# 执行修改
+nmcli connection modify "${MYCON}" ${MYTYPE}.cloned-mac-address ${MYMAC}
+nmcli connection up "${MYCON}"
+ip -c a show "${MYCON}"
 ```
 
 * 新建或修改部分网络参数, 网络连接可能会被断开, 并重新连接网络。
@@ -1290,6 +1382,8 @@ armbian-install
 
 - 通过在 cmdline 中添加 `usbcore.usb3_disable=1` 设置，可以禁用 USB 3.0 的所有设备。
 
+- 通过在 cmdline 中添加 `extraargs=video=HDMI-A-1:1920x1080@60` 设置，可以将视频显示模式强制为 1080p。
+
 <div style="width:100%;margin-top:40px;margin:5px;">
 <img width="700" alt="image" src="https://user-images.githubusercontent.com/68696949/216220941-47db0183-7b26-4768-81cf-2ee73d59d23e.png">
 </div>
@@ -1326,7 +1420,7 @@ armbian-install
 
 #### 12.15.4 添加流程控制文件
 
-在 [yml 工作流控制文件](../../.github/workflows/build-armbian.yml) 的 `armbian_board` 中添加对应的 `BOARD` 选项，支持在 github.com 的 `Actions` 中进行使用。
+在 [yml 工作流控制文件](../../.github/workflows/build-armbian-server-image.yml) 的 `armbian_board` 中添加对应的 `BOARD` 选项，支持在 github.com 的 `Actions` 中进行使用。
 
 ### 12.16 如何解决写入 eMMC 时 I/O 错误的问题
 

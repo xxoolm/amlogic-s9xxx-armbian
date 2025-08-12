@@ -17,6 +17,7 @@ GitHub Actions is a service launched by Microsoft that provides a virtual server
     - [5.2 Scheduled Compilation](#52-scheduled-compilation)
     - [5.3 Customizing Default System Configuration](#53-customizing-default-system-configuration)
     - [5.4 Expanding Github Actions Compilation Space Using Logical Volumes](#54-expanding-github-actions-compilation-space-using-logical-volumes)
+    - [5.5 Build Armbian Docker image](#55-build-armbian-docker-image)
   - [6. Saving the System](#6-saving-the-system)
   - [7. Downloading the System](#7-downloading-the-system)
   - [8. Installing Armbian to EMMC](#8-installing-armbian-to-emmc)
@@ -30,10 +31,12 @@ GitHub Actions is a service launched by Microsoft that provides a virtual server
       - [8.2.3 Installation method for FastRhino R68S](#823-installation-method-for-fastrhino-r68s)
       - [8.2.4 Installation method for Beikeyun](#824-installation-method-for-beikeyun)
       - [8.2.5 Installation method for Chainedbox-L1-Pro](#825-installation-method-for-chainedbox-l1-pro)
+      - [8.2.6 Installation method for lckfb-tspi](#826-installation-method-for-lckfb-tspi)
     - [8.3 Allwinner Series Installation Method](#83-allwinner-series-installation-method)
   - [9. Compiling Armbian Kernel](#9-compiling-armbian-kernel)
     - [9.1 How to Add Custom Kernel Patches](#91-how-to-add-custom-kernel-patches)
     - [9.2 How to Make Kernel Patches](#92-how-to-make-kernel-patches)
+    - [9.3 How to Customize Compilation of Driver Modules](#93-how-to-customize-compilation-of-driver-modules)
   - [10. Updating Armbian Kernel](#10-updating-armbian-kernel)
   - [11. Installing Common Software](#11-installing-common-software)
   - [12. Frequently Asked Questions](#12-frequently-asked-questions)
@@ -112,7 +115,7 @@ Now you can Fork the repository. Open the repository https://github.com/ophub/am
 
 ## 4. Customization instructions for personalized Armbian system files
 
-The system compilation process is controlled in the [.github/workflows/build-armbian.yml](../../.github/workflows/build-armbian.yml) file. There are other .yml files in the workflows directory that implement different functions. The system is compiled in real time using Armbian's current official code, and related parameters can be referred to the official documentation.
+The system compilation process is controlled in the [.github/workflows/build-armbian-server-image.yml](../.github/workflows/build-armbian-server-image.yml) file. There are other .yml files in the workflows directory that implement different functions. The system is compiled in real time using Armbian's current official code, and related parameters can be referred to the official documentation.
 
 ```yaml
 - name: Compile Armbian [ ${{ inputs.set_release }} ]
@@ -143,7 +146,7 @@ In your repository's navigation bar, click the Actions button, then sequentially
 
 ### 5.2 Scheduled Compilation
 
-In the [.github/workflows/build-armbian.yml](../../.github/workflows/build-armbian.yml) file, use Cron to set scheduled compilation. The five different positions respectively represent minutes (0 - 59) / hours (0 - 23) / date (1 - 31) / month (1 - 12) / day of the week (0 - 6)(Sunday - Saturday). Set the time by modifying the value at different positions. The system uses UTC standard time by default, please convert according to the time zone of your country.
+In the [.github/workflows/build-armbian-server-image.yml](../../.github/workflows/build-armbian-server-image.yml) file, use Cron to set scheduled compilation. The five different positions respectively represent minutes (0 - 59) / hours (0 - 23) / date (1 - 31) / month (1 - 12) / day of the week (0 - 6)(Sunday - Saturday). Set the time by modifying the value at different positions. The system uses UTC standard time by default, please convert according to the time zone of your country.
 
 ```yaml
 schedule:
@@ -160,7 +163,7 @@ When compiling locally, specify with the `-b` parameter. When compiling in Actio
 
 ### 5.4 Expanding Github Actions Compilation Space Using Logical Volumes
 
-The default compile space for Github Actions is 84G, with about 50G available after considering the system and necessary software packages. When compiling all firmware, you may encounter an issue with insufficient space, which can be addressed by using logical volumes to expand the compile space to approximately 110G. Refer to the method in the [.github/workflows/build-armbian.yml](../.github/workflows/build-armbian.yml) file, and use the commands below to create a logical volume. Then, use the path of the logical volume during the compilation process.
+The default compile space for Github Actions is 84G, with about 50G available after considering the system and necessary software packages. When compiling all firmware, you may encounter an issue with insufficient space, which can be addressed by using logical volumes to expand the compile space to approximately 110G. Refer to the method in the [.github/workflows/build-armbian-server-image.yml](../.github/workflows/build-armbian-server-image.yml) file, and use the commands below to create a logical volume. Then, use the path of the logical volume during the compilation process.
 
 ```yaml
 - name: Create simulated physical disk
@@ -182,9 +185,13 @@ The default compile space for Github Actions is 84G, with about 50G available af
     df -Th
 ```
 
+### 5.5 Build Armbian Docker image
+
+The method for creating the [Docker](https://hub.docker.com/u/ophub) image of the Armbian system can refer to the [armbian_docker](../compile-kernel/tools/script/docker) build script.
+
 ## 6. Saving the System
 
-The system save setting is also controlled in the [.github/workflows/build-armbian.yml](../../.github/workflows/build-armbian.yml) file. We upload the compiled system to the Releases provided by the official GitHub via script automatically.
+The system save setting is also controlled in the [.github/workflows/build-armbian-server-image.yml](../../.github/workflows/build-armbian-server-image.yml) file. We upload the compiled system to the Releases provided by the official GitHub via script automatically.
 
 ```yaml
 - name: Upload Armbian image to Release
@@ -344,6 +351,13 @@ The method is reproduced from [cc747](https://post.smzdm.com/p/a4wkdo7l/)'s tuto
 <img src=https://github.com/ophub/amlogic-s9xxx-armbian/assets/68696949/13aab016-1b93-4ff1-b1ef-c202bd357068 width="600" />
 </div>
 
+#### 8.2.6 Installation method for lckfb-tspi
+- Download the [RKDevTool](https://github.com/ophub/kernel/releases/download/tools/FastRhino_r68s_RKDevTool_Release_v2.86___DriverAssitant_v5.1.1.tar.gz) tool and driver, unzip and install the DriverAssistant driver program, and open the RKDevTool tool .(Note, please use version 2.86 tool instead of 2.92, version 2.92 will crash when flashing)
+- tspi in the shutdown state, press and hold the Recovery key and insert the type-c data cable. Release the Recovery key after RKDevTool prompts `A LOADER device was found'. Right click to add item.
+- Address `0x00000000`, name `system`, path select the `Armbian.img` system to be flashed.
+- Click Execute and wait for the progress to complete.
+
+
 ### 8.3 Allwinner Series Installation Method
 
 Log in to the Armbian system (default user: root, default password: 1234) → Enter the command:
@@ -394,6 +408,77 @@ When using the `kernel_patch` parameter to specify a custom kernel patch, please
 - Obtained from commits in github.com repositories: Adding a `.patch` suffix to the corresponding `commit` address can generate the corresponding patch.
 
 Before adding a custom kernel patch, it needs to be compared with the upstream kernel source repository [unifreq/linux-k.x.y](https://github.com/unifreq) to confirm whether this patch has been added to avoid conflicts. Kernel patches that pass the test are recommended to be submitted to the series of kernel repositories maintained by unifreq. Each small step for a person is a big step for the world. Your contribution will make our use of Armbian and OpenWrt systems in the box more stable and interesting.
+
+
+### 9.3 How to Customize Compilation of Driver Modules
+
+In the mainline Linux kernel, some drivers are not yet supported, and you can customize the compilation of driver modules. Select drivers that are supported for use in the mainline kernel; Android drivers are generally not supported in the mainline kernel and cannot be compiled. For example:
+
+```shell
+# Step 1: Update to the latest kernel
+# Due to incomplete header files in earlier versions, it is necessary to update to the latest kernel version.
+# The requirement for each kernel version is not lower than 5.4.280, 5.10.222, 5.15.163, 6.1.100, 6.6.41.
+armbian-sync
+armbian-update -k 6.1
+
+
+# Step 2: Install compilation tools
+mkdir -p /usr/local/toolchain
+cd /usr/local/toolchain
+# Download the compilation tools
+wget https://github.com/ophub/kernel/releases/download/dev/arm-gnu-toolchain-14.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz
+# Extract
+tar -Jxf arm-gnu-toolchain-14.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz
+# Install additional compilation dependencies (optional; you can manually install missing components based on errors).
+armbian-kernel -u
+
+
+# Step 3: Download and compile the driver
+# Download driver source code
+cd ~/
+git clone https://github.com/jwrdegoede/rtl8189ES_linux
+cd rtl8189ES_linux
+# Set up the compilation environment
+gun_file="arm-gnu-toolchain-14.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz"
+toolchain_path="/usr/local/toolchain"
+toolchain_name="gcc"
+export CROSS_COMPILE="${toolchain_path}/${gun_file//.tar.xz/}/bin/aarch64-none-linux-gnu-"
+export CC="${CROSS_COMPILE}gcc"
+export LD="${CROSS_COMPILE}ld.bfd"
+export ARCH="arm64"
+export KSRC=/usr/lib/modules/$(uname -r)/build
+# Set the M variable according to the actual path of the source code
+export M="/root/rtl8189ES_linux"
+# Compile the driver
+make
+
+
+# Step 4: Install the driver
+sudo cp -f 8189es.ko /lib/modules/$(uname -r)/kernel/drivers/net/wireless/
+# Update module dependencies
+sudo depmod -a
+# Load the driver module
+sudo modprobe 8189es
+# Check if the driver is successfully loaded
+lsmod | grep 8189es
+# You should see the driver successfully loaded
+8189es               1843200  0
+cfg80211              917504  2 8189es,brcmfmac
+```
+
+The illustration is as follows:
+
+<div style="width:100%;margin-top:40px;margin:5px;">
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/1a89cbe6-df38-4862-8d11-9d977e0f4191">
+</div>
+
+<div style="width:100%;margin-top:40px;margin:5px;">
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/1a1d0bb9-44d4-4de5-9907-47e5f20747a7">
+</div>
+
+<div style="width:100%;margin-top:40px;margin:5px;">
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/d1bd2eff-4c57-4e91-a870-08b0f8b1fe16">
+</div>
 
 ## 10. Updating Armbian Kernel
 
@@ -838,21 +923,29 @@ ip -c -br address
 
 ##### 12.7.2.4 Modify Network Connection MAC Address
 
-Modify (clone) the `MAC Address` on the network connection `ether1` and take effect immediately to solve the problem of LAN MAC address conflict.
+Modify (clone) the `MAC Address` on the network connection `eth0` and take effect immediately to solve the problem of LAN MAC address conflict.
 
 *Applicable to wired connections / wireless connections
 
 ```shell
+# Use the `nmcli connection show` command to view the network interface name
+nmcli connection show
+# The returned result contains the network interface name, such as 'Wired connection 1'
+NAME                UUID                                  TYPE      DEVICE
+Wired connection 1  24d63dc7-c46f-3bf1-912f-1c33eb94338b  ethernet  eth0
+lo                  35ca24e5-bdc0-4658-8ac8-435ee22e07f3  loopback  lo
+Wired connection 2  59660b21-b460-30e0-8cb3-89b886556955  ethernet  --
+
 # Set ENV
-MYCON=ether1                  # Network connection name, note to match the network interface type
-MYTYPE=ethernet               # Network interface type = Wired network card / Wireless network card = ethernet / wifi
-MYMAC=12:34:56:78:9A:BC       # New MAC address
+MYCON='Wired connection 1'    # Network connection name, note to match the network interface type
+MYTYPE='802-3-ethernet'       # Network interface type = Wired network card / Wireless network card
+                              #                        = 802-3-ethernet     / 802-11-wireless
+MYMAC='12:34:56:78:9A:BC'     # Set new MAC address
 
 # Chg CON
-nmcli connection modify ${MYCON} \
-${MYTYPE}.cloned-mac-address ${MYMAC}
-nmcli connection up ${MYETH}
-ip -c -br address
+nmcli connection modify "${MYCON}" ${MYTYPE}.cloned-mac-address ${MYMAC}
+nmcli connection up "${MYCON}"
+ip -c a show "${MYCON}"
 ```
 
 * When creating or modifying some network parameters, the network connection may be disconnected and reconnected to the network.
@@ -1296,6 +1389,8 @@ In Amlogic devices, you can add/modify/delete settings in the `/boot/uEnv.txt` f
 
 - By adding `usbcore.usb3_disable=1` in cmdline, you can disable all USB 3.0 devices.
 
+- By adding `extraargs=video=HDMI-A-1:1920x1080@60` in cmdline, you can force the video display mode to 1080p.
+
 <div style="width:100%;margin-top:40px;margin:5px;">
 <img width="700" alt="image" src="https://user-images.githubusercontent.com/68696949/216220941-47db0183-7b26-4768-81cf-2ee73d59d23e.png">
 </div>
@@ -1332,7 +1427,7 @@ During the Armbian image construction, these u-boot files will be written into t
 
 #### 12.15.4 Add Process Control Files
 
-Add the corresponding `BOARD` option to `armbian_board` in the [yml workflow control file](../../.github/workflows/build-armbian.yml), which supports use in `Actions` on github.com.
+Add the corresponding `BOARD` option to `armbian_board` in the [yml workflow control file](../../.github/workflows/build-armbian-server-image.yml), which supports use in `Actions` on github.com.
 
 ### 12.16 How to Resolve the Issue of I/O Errors While Writing to eMMC
 
